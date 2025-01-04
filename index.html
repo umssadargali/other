@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .digital-clock {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .camera {
+            margin-bottom: 20px;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        footer p {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Student Attendance System</h1>
+            <p class="digital-clock" id="clock"></p>
+        </header>
+
+        <div class="main-content">
+            <select id="student-select">
+                <option value="">Select Student</option>
+                <option value="1. SANIA PERWEEN ">1. SANIA PERWEEN </option>
+                <option value="2. RANI PARWEEN">2. RANI PARWEEN</option>
+                <option value="3. CHANDNI PARWEEN">3. CHANDNI PARWEEN</option>
+                <!-- Add more students here -->
+            </select>
+
+            <div class="camera">
+                <video id="video" width="320" height="240" autoplay></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+                <button id="capture">Capture Photo</button>
+                <img id="photo" src="" alt="Captured Photo" style="display:none;">
+            </div>
+
+            <div class="attendance-btns">
+                <button id="check-in">Check In</button>
+                <button id="check-out">Check Out</button>
+            </div>
+
+            <p id="status"></p>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Student Attendance System</p>
+        </footer>
+    </div>
+
+    <script>
+        // Digital Clock Function
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Accessing the camera
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const photo = document.getElementById('photo');
+        const captureButton = document.getElementById('capture');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing webcam: ", err);
+            });
+
+        // Capture Photo
+        captureButton.addEventListener('click', () => {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imgData = canvas.toDataURL('image/png');
+            photo.src = imgData;
+            photo.style.display = 'block';
+        });
+
+        // Check In / Check Out Functions
+        document.getElementById('check-in').addEventListener('click', () => {
+            handleAttendance('Check In');
+        });
+
+        document.getElementById('check-out').addEventListener('click', () => {
+            handleAttendance('Check Out');
+        });
+
+        function handleAttendance(action) {
+            const studentName = document.getElementById('student-select').value;
+            if (!studentName) {
+                alert('Please select a student.');
+                return;
+            }
+
+            const photoUrl = photo.src;
+            const currentTime = new Date();
+            const time = currentTime.toLocaleTimeString();
+            const date = currentTime.toLocaleDateString();
+
+            const data = {
+                student: studentName,
+                date: date,
+                time: time,
+                action: action,
+                photoUrl: photoUrl,
+                location: 'Location Data Placeholder', // Implement location if needed
+            };
+
+            document.getElementById('status').textContent = `${action} for ${studentName} at ${time}`;
+
+            // Send data to Google Sheets
+            saveToGoogleSheets(data);
+        }
+
+        // Function to save data to Google Sheets (using Google Apps Script)
+        function saveToGoogleSheets(data) {
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbzSrUwKyV537ECGO2p4eDNzR3dhJ2F3P4Hgy_Ey02MbawmnHtctoC7-Ow3h8xq4avST/exec'; // Replace with your Apps Script URL
+
+            fetch(scriptURL, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(result => console.log('Success:', result))
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
